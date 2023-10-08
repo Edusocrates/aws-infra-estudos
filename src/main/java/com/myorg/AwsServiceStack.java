@@ -4,12 +4,10 @@ import software.amazon.awscdk.Fn;
 import software.amazon.awscdk.RemovalPolicy;
 import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.StackProps;
+import software.amazon.awscdk.services.applicationautoscaling.EnableScalingProps;
 import software.amazon.awscdk.services.ecr.IRepository;
 import software.amazon.awscdk.services.ecr.Repository;
-import software.amazon.awscdk.services.ecs.AwsLogDriverProps;
-import software.amazon.awscdk.services.ecs.Cluster;
-import software.amazon.awscdk.services.ecs.ContainerImage;
-import software.amazon.awscdk.services.ecs.LogDriver;
+import software.amazon.awscdk.services.ecs.*;
 import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedFargateService;
 import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedTaskImageOptions;
 import software.amazon.awscdk.services.logs.LogGroup;
@@ -37,29 +35,24 @@ public class AwsServiceStack extends Stack {
 
 
         // Create a load-balanced Fargate service and make it public
-        ApplicationLoadBalancedFargateService.Builder.create(this, "EstudoService")
-                .serviceName("estudos-service-ola")
-                .cluster(cluster)           // Required
-                .cpu(512)                   // Default is 256
+        ApplicationLoadBalancedFargateService loadBalancedFargateService = ApplicationLoadBalancedFargateService.Builder.create(this, "Service")
+                .cluster(cluster)
+                .memoryLimitMiB(1024)
                 .desiredCount(1)
-                .listenerPort(8080)
-                .assignPublicIp(true)// Default is 1
-                .taskImageOptions(
-                        ApplicationLoadBalancedTaskImageOptions.builder()
-                                .image(ContainerImage.fromEcrRepository(repositorio))
-                                .containerPort(8080)
-                                .containerName("app_ola")
-                                .environment(autenticacao)
-                                .logDriver(LogDriver.awsLogs(AwsLogDriverProps.builder()
-                                        .logGroup(LogGroup.Builder.create(this, "PedidosMsLogGroup")
-                                                .logGroupName("PedidosMsLog")
-                                                .removalPolicy(RemovalPolicy.DESTROY)
-                                                .build())
-                                        .streamPrefix("PedidosMS")
-                                        .build()))
-                                .build())
-                .memoryLimitMiB(2048)       // Default is 512
-                .publicLoadBalancer(true)   // Default is false
+                .cpu(512)
+                .taskImageOptions(ApplicationLoadBalancedTaskImageOptions.builder()
+                        .image(ContainerImage.fromRegistry("amazon/amazon-ecs-sample"))
+                        .build())
                 .build();
+        ScalableTaskCount scalableTarget = loadBalancedFargateService.getService().autoScaleTaskCount(EnableScalingProps.builder()
+                .minCapacity(1)
+                .maxCapacity(20)
+                .build());
+        scalableTarget.scaleOnCpuUtilization("CpuScaling", CpuUtilizationScalingProps.builder()
+                .targetUtilizationPercent(50)
+                .build());
+        scalableTarget.scaleOnMemoryUtilization("MemoryScaling", MemoryUtilizationScalingProps.builder()
+                .targetUtilizationPercent(50)
+                .build());
     }
 }
