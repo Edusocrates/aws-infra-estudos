@@ -10,7 +10,8 @@ public class AwsInfraApp {
     public static void main(final String[] args) {
         App app = new App();
 
-        new AwsVpcStack(app, "Vpc");
+        AwsVpcStack vpcStack = new AwsVpcStack(app, "Vpc");
+        new AwsClusterStack(app, "Cluster", vpcStack.getVpc());
 
         app.synth();
     }
