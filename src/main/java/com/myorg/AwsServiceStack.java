@@ -1,9 +1,6 @@
 package com.myorg;
 
-import software.amazon.awscdk.Fn;
-import software.amazon.awscdk.RemovalPolicy;
-import software.amazon.awscdk.Stack;
-import software.amazon.awscdk.StackProps;
+import software.amazon.awscdk.*;
 import software.amazon.awscdk.services.applicationautoscaling.EnableScalingProps;
 import software.amazon.awscdk.services.ecr.IRepository;
 import software.amazon.awscdk.services.ecr.Repository;
@@ -49,10 +46,14 @@ public class AwsServiceStack extends Stack {
                 .maxCapacity(20)
                 .build());
         scalableTarget.scaleOnCpuUtilization("CpuScaling", CpuUtilizationScalingProps.builder()
-                .targetUtilizationPercent(50)
+                .targetUtilizationPercent(70)
+                .scaleInCooldown(Duration.minutes(3))
+                .scaleOutCooldown(Duration.minutes(2))
                 .build());
         scalableTarget.scaleOnMemoryUtilization("MemoryScaling", MemoryUtilizationScalingProps.builder()
-                .targetUtilizationPercent(50)
+                .targetUtilizationPercent(65)
+                .scaleInCooldown(Duration.minutes(3))
+                .scaleOutCooldown(Duration.minutes(2))
                 .build());
     }
 }
